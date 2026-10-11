@@ -1,0 +1,6 @@
+node_modules/
+package-lock.json
+cloudfunctions/moodsky/package-lock.json
+cloudfunctions/moodsky/shared/
+miniprogram/config/environment.local.js
+project.private.config.json

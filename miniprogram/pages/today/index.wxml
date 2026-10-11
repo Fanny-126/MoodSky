@@ -1,0 +1,13 @@
+<view class="page">
+  <view class="eyebrow">MOODSKY</view>
+  <view class="title">今天的天气，由你定义</view>
+  <view class="card">
+    <view class="body">五种天气是感受的表达，不是评分。</view>
+    <view class="badge" wx:for="{{weatherTypes}}" wx:key="code">{{item.label}}</view>
+  </view>
+  <view class="card">
+    <empty-state title="记录入口准备中" description="后续可只选天气保存，也可添加标签和文字。这里尚未保存任何记录。" />
+    <view class="hint">固定标签</view>
+    <view class="badge" wx:for="{{tags}}" wx:key="id">{{item.label}}</view>
+  </view>
+</view>

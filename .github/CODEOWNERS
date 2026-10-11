@@ -1,0 +1,14 @@
+# Only verified GitHub handles are used. Add member handles via PR after invitation.
+# Responsibility map: docs/team.md. Shared boundaries need front/back-end review.
+/.github/ @HX-Jan
+/miniprogram/shared/ @HX-Jan
+/miniprogram/services/api.js @HX-Jan
+/miniprogram/app.json @HX-Jan
+/cloudfunctions/moodsky/router.js @HX-Jan
+/cloudfunctions/moodsky/index.js @HX-Jan
+/cloudfunctions/moodsky/package.json @HX-Jan
+/cloudfunctions/moodsky/package-lock.json @HX-Jan
+/database/ @HX-Jan
+/docs/api.md @HX-Jan
+/package.json @HX-Jan
+/package-lock.json @HX-Jan

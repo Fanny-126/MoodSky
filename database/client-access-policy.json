@@ -1,0 +1,7 @@
+{
+  "status": "manual-console-configuration-required",
+  "defaultClientRule": { "read": false, "write": false },
+  "scope": "Apply this rule to EVERY collection listed in collections.json, including places. Public reads go through validated cloud actions.",
+  "storage": "Private exports must not use public permanent URLs. Storage permissions and expiring delivery remain to be implemented and verified.",
+  "warning": "This file is a team policy, not an automatic deployment command. No database or cloud environment has been created."
+}
