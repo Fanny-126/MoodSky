@@ -58,7 +58,7 @@ function validateJournalInput(payload) {
     invalid('日期必须为真实的YYYY-MM-DD日期。');
   }
   if (!WEATHER_TYPES.some((item) => item.code === payload.weather)) {
-    invalid('请选择五种天气之一。');
+    invalid('请选择一种天气。');
   }
   const tags = payload.tags === undefined ? [] : payload.tags;
   const text = payload.text === undefined ? '' : payload.text;
