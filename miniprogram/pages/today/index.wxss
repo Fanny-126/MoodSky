@@ -77,10 +77,14 @@
 }
 .weather-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 20rpx;
 }
 .weather-cell {
+  width: 100%;
+  margin: 0;
+  box-sizing: border-box;
+  line-height: 1.4;
   background: #f6f4ff;
   border-radius: 20rpx;
   padding: 24rpx 0 18rpx;
