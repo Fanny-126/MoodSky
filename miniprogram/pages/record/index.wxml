@@ -7,7 +7,7 @@
   <view class="card">
     <view class="field-heading">天气</view>
     <view class="weather-grid">
-      <button wx:for="{{weatherOptions}}" wx:key="code" class="weather-cell {{item.selected ? 'selected' : ''}}" data-code="{{item.code}}" bindtap="onWeather" disabled="{{inputLocked}}">
+      <button wx:for="{{weatherOptions}}" wx:key="code" class="weather-cell weather-{{item.code}} {{item.selected ? 'selected' : ''}}" data-code="{{item.code}}" bindtap="onWeather" disabled="{{inputLocked}}">
         <view class="weather-icon">{{item.icon}}</view>
         <view class="weather-label">{{item.label}}</view>
       </button>
@@ -18,7 +18,7 @@
       <text class="field-caption">{{tagCount}}/{{tagLimit}} · 可不选</text>
     </view>
     <view class="tag-options">
-      <button wx:for="{{tagOptions}}" wx:key="id" class="tag-choice {{item.selected ? 'selected' : ''}}" data-id="{{item.id}}" bindtap="onTag" disabled="{{inputLocked}}">{{item.selected ? '✓ ' : ''}}{{item.label}}</button>
+      <button wx:for="{{tagOptions}}" wx:key="id" class="tag-choice tag-{{item.id}} {{item.selected ? 'selected' : ''}}" data-id="{{item.id}}" bindtap="onTag" disabled="{{inputLocked}}">{{item.selected ? '✓ ' : ''}}{{item.label}}</button>
     </view>
 
     <view class="field-row">
@@ -44,7 +44,7 @@
     <button class="reload-button" bindtap="onReload" disabled="{{!canReload}}">重新读取</button>
     <view class="confirm-panel" wx:if="{{confirm === 'reload'}}">
       <view class="confirm-text">{{confirmationAction}}？当前未保存输入将被放弃。</view>
-      <button class="reload-button" bindtap="onConfirmReload">确认放弃并读取</button>
+      <button class="reload-button confirm-reload" bindtap="onConfirmReload">确认放弃并读取</button>
       <button class="cancel-confirm" bindtap="onCancel">保留当前输入</button>
     </view>
   </view>
