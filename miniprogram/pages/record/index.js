@@ -5,12 +5,10 @@ const { getSharedDemoService } = require('../../modules/journal/demo-session');
 
 const ICONS = {
   SUNNY: '☀️',
-  CLOUDY: '⛅',
-  OVERCAST: '☁️',
-  LIGHT_RAIN: '🌦️',
-  WIND_RAIN: '🌧️',
-  HEAVY_RAIN: '⛈️',
-  TYPHOON: '🌀',
+  PARTLY_CLOUDY: '⛅',
+  CLOUDY: '☁️',
+  RAINY: '🌧️',
+  STORMY: '⛈️',
 };
 
 Page({
@@ -22,6 +20,13 @@ Page({
     this._journal = createJournalController({
       service: this._demo || journal,
       isDemo,
+      onChanged(change) {
+        const pages = getCurrentPages();
+        const parent = pages[pages.length - 2];
+        if (parent && typeof parent.onRecordChanged === 'function') {
+          parent.onRecordChanged(change);
+        }
+      },
       onChange: (state) =>
         this.setData({
           ...state,
@@ -82,5 +87,8 @@ Page({
   },
   onReload() {
     return this._journal.loadDate();
+  },
+  onConfirmReload() {
+    return this._journal.confirmReload();
   },
 });

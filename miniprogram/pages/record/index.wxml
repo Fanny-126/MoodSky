@@ -41,5 +41,11 @@
       <button class="retry-button" bindtap="onRetry" disabled="{{!canRetry}}">重试原操作</button>
       <button class="reload-button" bindtap="onReload" disabled="{{!canReload}}">重新读取</button>
     </view>
+    <button class="reload-button" bindtap="onReload" disabled="{{!canReload}}">重新读取</button>
+    <view class="confirm-panel" wx:if="{{confirm === 'reload'}}">
+      <view class="confirm-text">{{confirmationAction}}？当前未保存输入将被放弃。</view>
+      <button class="reload-button" bindtap="onConfirmReload">确认放弃并读取</button>
+      <button class="cancel-confirm" bindtap="onCancel">保留当前输入</button>
+    </view>
   </view>
 </view>

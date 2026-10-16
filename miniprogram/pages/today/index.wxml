@@ -60,8 +60,7 @@
         <text class="saved-label">{{entryWeatherLabel}}</text>
       </view>
       <view class="saved-tags" wx:if="{{entryTagText}}">{{entryTagText}}</view>
-      <view class="saved-text" wx:if="{{entry.text}}">{{entry.text}}</view>
-      <view class="saved-empty" wx:else>这一天只记下了天气。</view>
+      <view class="saved-empty">正文默认隐藏，进入私人记录页查看或修改。</view>
     </view>
     <button class="primary-button" bindtap="onEditEntry" disabled="{{inputLocked}}">修改这条记录</button>
     <view class="entry-list">
@@ -77,6 +76,13 @@
   </block>
 
   <view class="loading-state" wx:if="{{!loaded && phase === 'loading'}}">正在读取…</view>
+  <view class="operation-notice notice-{{noticeType}}" wx:if="{{!loaded && phase !== 'loading'}}">{{notice}}</view>
+  <button class="reload-button" bindtap="onReload" disabled="{{!canReload}}">重新读取</button>
+  <view class="confirm-panel" wx:if="{{confirm === 'reload'}}">
+    <view class="confirm-text">{{confirmationAction}}？当前未保存输入将被放弃。</view>
+    <button class="reload-button" bindtap="onConfirmReload">确认放弃并读取</button>
+    <button class="cancel-confirm" bindtap="onCancel">保留当前输入</button>
+  </view>
 
   <view class="demo-tools" wx:if="{{isDemo}}">
     <button class="demo-tool" bindtap="onDemoFailure" disabled="{{!canSave}}">演示连接失败与重试</button>

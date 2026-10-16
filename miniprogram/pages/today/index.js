@@ -9,12 +9,10 @@ const {
 
 const WEATHER_ICONS = {
   SUNNY: '☀️',
-  CLOUDY: '⛅',
-  OVERCAST: '☁️',
-  LIGHT_RAIN: '🌦️',
-  WIND_RAIN: '🌧️',
-  HEAVY_RAIN: '⛈️',
-  TYPHOON: '🌀',
+  PARTLY_CLOUDY: '⛅',
+  CLOUDY: '☁️',
+  RAINY: '🌧️',
+  STORMY: '⛈️',
 };
 const WEATHER_LABEL_MAP = WEATHER_TYPES.reduce((map, item) => {
   map[item.code] = item.label;
@@ -44,11 +42,19 @@ Page({
       return;
     }
     this._journal.refreshToday();
-    // 从 record 页返回时重新读取（record 页可能已保存或删除）
-    if (this._shownOnce && !this._journal.getState().inputLocked) {
-      this._journal.loadDate();
+    // Refresh only after a confirmed child-page mutation. Cancelled navigation
+    // must preserve the Today draft, including its pending request.
+    if (this._recordChangedDate) {
+      const date = this._recordChangedDate;
+      this._recordChangedDate = '';
+      this._journal.reset();
+      return this._journal.loadDate(date);
     }
-    this._shownOnce = true;
+  },
+  onRecordChanged(change) {
+    if (change && ['saved', 'deleted'].includes(change.kind) && change.date === this.data.date) {
+      this._recordChangedDate = change.date;
+    }
   },
 
   onUnload() {
@@ -74,7 +80,9 @@ Page({
         ? '先选一种天气'
         : state.isOlderNewDate
           ? '超出可新建范围'
-          : '保存今天的天气',
+          : state.date === state.today
+            ? '保存今天的天气'
+            : '保存这一天的天气',
       entryWeatherIcon: state.entry ? WEATHER_ICONS[state.entry.weather] || '🌈' : '',
       entryWeatherLabel: state.entry ? WEATHER_LABEL_MAP[state.entry.weather] || '' : '',
       entryTagText: tagText,
@@ -94,6 +102,12 @@ Page({
   onReload() {
     return this._journal.loadDate();
   },
+  onConfirmReload() {
+    return this._journal.confirmReload();
+  },
+  onCancel() {
+    this._journal.cancelConfirm();
+  },
   onDate(event) {
     return this._journal.loadDate(event.detail.value);
   },
@@ -109,9 +123,11 @@ Page({
   // 想写几句？→ 私人记录页（带当前选中天气）
   onWrite() {
     const state = this._journal.getState();
+    if (state.inputLocked || !state.loaded) {
+      return;
+    }
     const weather = state.entry ? '' : state.weather;
-    const url =
-      '/pages/record/index?date=' + state.date + (weather ? '&weather=' + weather : '');
+    const url = '/pages/record/index?date=' + state.date + (weather ? '&weather=' + weather : '');
     wx.navigateTo({ url });
   },
   // 轻选择入口（YF05，待 Qizhen Chen 任务页接入）
@@ -121,7 +137,7 @@ Page({
   // 修改今天这条记录 → 私人记录页
   onEditEntry() {
     const state = this._journal.getState();
-    if (state.entry) {
+    if (state.entry && !state.inputLocked) {
       wx.navigateTo({ url: '/pages/record/index?date=' + state.date });
     }
   },
@@ -132,6 +148,9 @@ Page({
     }
   },
   onDemoClear() {
+    if (!this._demo) {
+      return;
+    }
     clearSharedDemoService();
     this._journal.reset();
     this._journal.loadDate();

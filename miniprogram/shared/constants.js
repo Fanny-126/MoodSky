@@ -1,11 +1,9 @@
 const WEATHER_TYPES = Object.freeze([
   Object.freeze({ code: 'SUNNY', label: '晴天', labelEn: 'Sunny' }),
-  Object.freeze({ code: 'CLOUDY', label: '多云', labelEn: 'Cloudy' }),
-  Object.freeze({ code: 'OVERCAST', label: '阴天', labelEn: 'Overcast' }),
-  Object.freeze({ code: 'LIGHT_RAIN', label: '小雨', labelEn: 'Light Rain' }),
-  Object.freeze({ code: 'WIND_RAIN', label: '风雨', labelEn: 'Wind and Rain' }),
-  Object.freeze({ code: 'HEAVY_RAIN', label: '暴雨', labelEn: 'Heavy Rain' }),
-  Object.freeze({ code: 'TYPHOON', label: '台风', labelEn: 'Typhoon' }),
+  Object.freeze({ code: 'PARTLY_CLOUDY', label: '晴间多云', labelEn: 'Partly Cloudy' }),
+  Object.freeze({ code: 'CLOUDY', label: '阴天', labelEn: 'Cloudy' }),
+  Object.freeze({ code: 'RAINY', label: '雨天', labelEn: 'Rainy' }),
+  Object.freeze({ code: 'STORMY', label: '暴风雨', labelEn: 'Stormy' }),
 ]);
 const JOURNAL_TAGS = Object.freeze([
   Object.freeze({ id: 'STUDY', label: '课业' }),

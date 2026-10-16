@@ -1,5 +1,11 @@
 {
-  "pages": ["pages/today/index", "pages/record/index", "pages/campus/index", "pages/universe/index", "pages/me/index"],
+  "pages": [
+    "pages/today/index",
+    "pages/record/index",
+    "pages/campus/index",
+    "pages/universe/index",
+    "pages/me/index"
+  ],
   "window": {
     "navigationBarTitleText": "MoodSky",
     "navigationBarBackgroundColor": "#F5F7FC",

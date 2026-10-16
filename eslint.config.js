@@ -23,6 +23,7 @@ module.exports = [
         Component: 'readonly',
         wx: 'readonly',
         getApp: 'readonly',
+        getCurrentPages: 'readonly',
       },
     },
     rules: {
