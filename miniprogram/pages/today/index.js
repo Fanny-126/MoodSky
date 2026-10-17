@@ -7,6 +7,7 @@ const {
   clearSharedDemoService,
 } = require('../../modules/journal/demo-session');
 const reviewStore = require('../../modules/review/demo-store').reviewStore;
+const design = require('../../modules/presentation/jiaqi-design');
 
 const WEATHER_ICONS = {
   SUNNY: '☀️',
@@ -25,9 +26,13 @@ const TAG_LABEL_MAP = JOURNAL_TAGS.reduce((map, item) => {
 }, {});
 
 Page({
-  data: { phase: 'loading', recordStatus: '正在读取', loaded: false },
+  data: { phase: 'loading', recordStatus: '正在读取', loaded: false, showDemoTools: false },
+  onToggleDemoTools() {
+    this.setData({ showDemoTools: !this.data.showDemoTools });
+  },
 
   onLoad() {
+    this._disposed = false;
     const isDemo = environment.journalDemo === true && environment.cloudEnabled === false;
     this._demo = isDemo ? getSharedDemoService() : null;
     this._journal = createJournalController({
@@ -41,6 +46,7 @@ Page({
   },
 
   onShow() {
+    design.syncTab(this, 0);
     if (!this._journal) {
       return;
     }
@@ -61,16 +67,20 @@ Page({
   },
 
   onUnload() {
+    this._disposed = true;
     if (this._journal) {
       this._journal.dispose();
     }
   },
 
   _mapState(state) {
-    const weatherOptions = state.weatherOptions.map((item) => ({
-      ...item,
-      icon: WEATHER_ICONS[item.code] || '🌈',
-    }));
+    const weatherOptions = design.weatherChoices(
+      state.weatherOptions.map((item) => ({
+        ...item,
+        icon: WEATHER_ICONS[item.code] || '🌈',
+      })),
+      true,
+    );
     const selected = weatherOptions.find((item) => item.selected);
     const tagText = state.entry
       ? state.entry.tags.map((id) => TAG_LABEL_MAP[id] || id).join(' · ')
@@ -87,13 +97,18 @@ Page({
             ? '保存今天的天气'
             : '保存这一天的天气',
       entryWeatherIcon: state.entry ? WEATHER_ICONS[state.entry.weather] || '🌈' : '',
-      entryWeatherLabel: state.entry ? WEATHER_LABEL_MAP[state.entry.weather] || '' : '',
+      entryWeatherLabel: state.entry
+        ? design.WEATHER[state.entry.weather] || WEATHER_LABEL_MAP[state.entry.weather] || ''
+        : '',
       entryTagText: tagText,
       isToday: state.date === state.today,
     };
   },
 
   onWeather(event) {
+    if (!WEATHER_TYPES.some((item) => item.code === event.currentTarget.dataset.code)) {
+      return;
+    }
     this._journal.chooseWeather(event.currentTarget.dataset.code);
   },
   onSave() {
@@ -133,9 +148,36 @@ Page({
     const url = '/pages/record/index?date=' + state.date + (weather ? '&weather=' + weather : '');
     wx.navigateTo({ url });
   },
-  // 轻选择入口（YF05，待 Qizhen Chen 任务页接入）
+  // Jiaqi N01: navigation only; choosing a need never saves a journal or task.
   onNeeds() {
-    wx.showToast({ title: '即将开放', icon: 'none' });
+    if (this._disposed || !this._journal || this._journal.getState().inputLocked) {
+      return;
+    }
+    wx.showActionSheet({
+      itemList: [
+        '记录一下',
+        '找个安静的地方',
+        '想说几句',
+        '做件很小的事',
+        '回顾一下',
+        '暂时不想做任何事',
+      ],
+      success: ({ tapIndex }) => {
+        if (this._disposed || this._journal.getState().inputLocked) {
+          return;
+        }
+        if (tapIndex === 0 || tapIndex === 2) {
+          this.onWrite();
+        } else if (tapIndex === 1) {
+          wx.switchTab({ url: '/pages/campus/index' });
+        } else if (tapIndex === 3) {
+          wx.navigateTo({ url: '/pages/tasks/index' });
+        } else if (tapIndex === 4) {
+          wx.switchTab({ url: '/pages/universe/index' });
+        }
+        // Rest and cancellation leave the current draft untouched.
+      },
+    });
   },
   // 修改今天这条记录 → 私人记录页
   onEditEntry() {
