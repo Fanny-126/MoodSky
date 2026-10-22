@@ -37,7 +37,7 @@ test('explicit task receipts preserve identity across reordered fields and rejec
     assert.throws(() => service.transition(input), { code: 'INVALID_INPUT' });
   }
 });
-function load(name, config, query = {}) {
+function load(name, config, query = {}, taskApi, healthCheck) {
   const filename = path.resolve(__dirname, '../miniprogram/pages', name, 'index.js');
   const localRequire = createRequire(filename);
   const stored = new Map();
@@ -53,9 +53,20 @@ function load(name, config, query = {}) {
       getStorageSync: (key) => stored.get(key),
       setStorageSync: (key, value) => stored.set(key, value),
       navigateTo: ({ url }) => urls.push(url),
+      switchTab: ({ url }) => urls.push(url),
       showToast() {},
     },
     require(id) {
+      if (healthCheck && id.endsWith('/modules/system/health')) {
+        return { checkHealth: healthCheck };
+      }
+      if (taskApi && id.endsWith('/modules/tasks/cloud')) {
+        const { createCloudTaskController } = localRequire(id);
+        return {
+          createCloudTaskController: ({ publish }) =>
+            createCloudTaskController({ api: taskApi, publish }),
+        };
+      }
       return id.endsWith('/config/environment.local') ? config : localRequire(id);
     },
   });
@@ -125,4 +136,80 @@ test('Me retains account preferences and local health while opening the task rou
   ]) {
     assert(app.pages.includes(route));
   }
+});
+
+test('cloud page events reach task services, preserve failed actions and route quick choices without journal writes', async () => {
+  const sent = [];
+  let fail = true;
+  const api = {
+    suggestions: async () => ({
+      ok: true,
+      data: { items: [{ taskId: 'tpl', title: '合成夹具', durationMin: 3, state: null }] },
+    }),
+    history: async () => ({
+      ok: true,
+      data: { items: [{ taskId: 'tpl', date: '2026-10-20', state: 'completed' }] },
+    }),
+    quickChoice: async () => ({
+      ok: true,
+      data: { entries: [{ kind: 'places', enabled: true, label: '校园' }] },
+    }),
+    createTransitionRequest: (payload) =>
+      Object.freeze({ requestId: 'original', payload: Object.freeze(payload) }),
+    submit: async (request) => {
+      sent.push(request);
+      if (fail) {
+        throw { code: 'NETWORK_ERROR' };
+      }
+      return { ok: true, data: { taskId: 'tpl', state: 'selected' } };
+    },
+  };
+  const { page, urls } = load('tasks', { cloudEnabled: true }, {}, api);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(page.data.isDemo, false);
+  assert.equal(page.data.suggestions.length, 1);
+  await page.onTaskAction({ currentTarget: { dataset: { taskId: 'tpl', action: 'select' } } });
+  assert.equal(page.data.suggestions[0].state, 'available');
+  assert.equal(page.data.retryPending, true);
+  fail = false;
+  await page.onRetry();
+  assert.equal(sent[0], sent[1]);
+  assert.equal(page.data.suggestions[0].state, 'selected');
+  await page.onView({ currentTarget: { dataset: { view: 'history' } } });
+  assert.equal(page.data.history[0].date, '2026-10-20');
+  page.onQuickChoice({ currentTarget: { dataset: { kind: 'places' } } });
+  assert.equal(urls[0], '/pages/campus/index');
+  page.onUnload();
+});
+
+test('Me health retry and account switch clear old error codes and reject late results', async () => {
+  let finish;
+  let calls = 0;
+  const { page } = load(
+    'me',
+    { cloudEnabled: true, cloudEnvId: 'synthetic-only' },
+    {},
+    undefined,
+    async () => {
+      if (++calls === 1) {
+        return { ok: false, code: 'UNAUTHENTICATED', message: 'synthetic', requestId: 'old' };
+      }
+      return new Promise((resolve) => {
+        finish = resolve;
+      });
+    },
+  );
+  await page.runHealth();
+  assert.equal(page.data.healthCode, 'UNAUTHENTICATED');
+  const next = page.runHealth();
+  assert.equal(page.data.healthCode, '');
+  assert.equal(page.data.feedbackState, 'loading');
+  page.switchAccount({ currentTarget: { dataset: { id: 'demo-b' } } });
+  assert.equal(page.data.healthCode, '');
+  assert.equal(page.data.healthRequestId, '');
+  assert.equal(page.data.feedbackState, 'empty');
+  finish({ ok: true, apiVersion: '1', requestId: 'late' });
+  await next;
+  assert.equal(page.data.healthText, '尚未检查');
+  page.onUnload();
 });
