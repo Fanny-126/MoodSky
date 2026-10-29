@@ -86,6 +86,38 @@ function createRepositories(cloud) {
     return rows.length > 0 ? rows[0] : null;
   }
 
+  // Cleanup is bounded and verified one document at a time: a partial delete is
+  // reported as an error rather than silently counted as success, because the
+  // caller (account cleanup) records the removed count it gets back.
+  async function removeOwned(collection, ownerId) {
+    let removed = 0;
+    for (let round = 0; round <= SWEEP_LIMIT; round += 1) {
+      const batch = await db.collection(collection).where({ ownerId }).limit(BATCH_SIZE).get();
+      const rows = rowsOf(batch);
+      if (rows.length === 0) {
+        return { removed };
+      }
+      for (const row of rows) {
+        if (typeof row._id !== 'string' || row._id.length === 0) {
+          throw new Error('Invalid campus cleanup row');
+        }
+        await db.runTransaction(async (tx) => {
+          const document = tx.collection(collection).doc(row._id);
+          const current = (await document.get()).data;
+          if (!current || current._id !== row._id || current.ownerId !== ownerId) {
+            conflict();
+          }
+          const result = await document.remove();
+          if (result?.stats?.removed !== 1) {
+            throw new Error('Invalid campus cleanup acknowledgement');
+          }
+        });
+        removed += 1;
+      }
+    }
+    throw new Error('Campus cleanup exceeded the sweep limit');
+  }
+
   return {
     places: {
       listAll() {
@@ -160,6 +192,11 @@ function createRepositories(cloud) {
         }
         return { removed };
       },
+
+      /** Account cleanup: idempotent removal of every favorite owned by one account. */
+      removeByOwner(ownerId) {
+        return removeOwned(FAVORITES, ownerId);
+      },
     },
 
     corrections: {
@@ -168,8 +205,56 @@ function createRepositories(cloud) {
         return { id: createdId(result) };
       },
 
+      async findByCorrectionId(correctionId) {
+        const result = await db.collection(CORRECTIONS).doc(correctionId).get();
+        const row = result && result.data;
+        if (!row) {
+          return null;
+        }
+        return { ...row, _id: typeof row._id === 'string' ? row._id : correctionId };
+      },
+
+      /**
+       * Reviews one correction inside a transaction, so two operators cannot
+       * both "approve" the same pending record from stale reads. The builder
+       * re-plans against the current row on every SDK retry.
+       */
+      async reviewById(id, buildChanges) {
+        if (typeof buildChanges !== 'function') {
+          throw new TypeError('Correction reviews require a transaction-owned change builder.');
+        }
+        return db.runTransaction(async (tx) => {
+          const document = tx.collection(CORRECTIONS).doc(id);
+          const current = (await document.get()).data;
+          if (!current) {
+            return { updated: 0, changes: null };
+          }
+          if (current._id !== id) {
+            conflict();
+          }
+          const planned = buildChanges({ ...current, _id: current._id || id });
+          if (!planned || planned.changes === null) {
+            return { updated: 0, changes: null, alreadyReviewed: true };
+          }
+          const result = await document.update({ data: planned.changes });
+          if (result?.stats?.updated !== 1) {
+            conflict();
+          }
+          return { updated: 1, changes: planned.changes };
+        });
+      },
+
       listAll() {
         return sweep(CORRECTIONS);
+      },
+
+      listByOwner(ownerId) {
+        return sweep(CORRECTIONS, { ownerId });
+      },
+
+      /** Account cleanup: idempotent removal of every correction owned by one account. */
+      removeByOwner(ownerId) {
+        return removeOwned(CORRECTIONS, ownerId);
       },
     },
 
